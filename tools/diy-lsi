@@ -1,17 +1,11 @@
 #!/usr/bin/env python
 
-import argparse, json, os, sys
+import argparse, json, os, multiprocessing, sys
 import diylsi.inventory
 
 def do_inventory():
     parser = argparse.ArgumentParser(prog='diy-lsi inventory', 
                                      description="LSI disk inventory")
-    parser.add_argument('--all', help='scan disks and filesystems', 
-                        dest='alltargets', action='store_true')
-    parser.add_argument('--fs', help='scan filesystems', 
-                        dest='fs', action='store_true')
-    parser.add_argument('--disks', help='scan disks',
-                        dest='disks', action='store_true')
     parser.add_argument('--diff', help='diff state with stored config',
                         dest='diff', action='store_true')
     parser.add_argument('--data', help='path to data',
@@ -19,26 +13,33 @@ def do_inventory():
 
     config = parser.parse_args(sys.argv[2:])
 
-    if config.disks or config.alltargets:
-        d = diylsi.inventory.parse_sas2ircu()
-        a = diylsi.inventory.parse_mdb_mpt()
-        sas_data = diylsi.inventory.join_dict(d, a, 'guid')
-        c = diylsi.inventory.parse_iostat()
-        disks = diylsi.inventory.join_dict(c, sas_data, 'serial')
-   
-        try:
-            open('/etc/diy-lsi/hardware.js', 'w').write(json.dumps(disks, indent=2))
-        except:
-            print "Failed to write file /etc/diy-lsi/hardware.js"
-            sys.exit(1)
+    pool = multiprocessing.Pool(4)
 
-    if config.fs or config.alltargets:
-        pools = diylsi.inventory.parse_zpool()
-        try:
-            open('/etc/diy-lsi/pools.js', 'w').write(json.dumps(pools, indent=2))
-        except:
-            print "Failed to write file /etc/diy-lsi/pools.js"
-            sys.exit(1)
+    #d = diylsi.inventory.parse_sas2ircu()
+    a = pool.apply_async(diylsi.inventory.parse_mdb_mpt)
+    #a = diylsi.inventory.parse_mdb_mpt()
+    c = pool.apply_async(diylsi.inventory.parse_iostat)
+    #c = diylsi.inventory.parse_iostat()
+    pools = pool.apply_async(diylsi.inventory.parse_zpool)
+    d = diylsi.inventory.parse_sas2ircu()
+
+    pool.close()
+    pool.join()
+
+    sas_data = diylsi.inventory.join_dict(d, a.get(), 'guid')
+    disks = diylsi.inventory.join_dict(c.get(), sas_data, 'serial')
+   
+    try:
+        open('/etc/diy-lsi/hardware.js', 'w').write(json.dumps(disks, indent=2))
+    except:
+        print "Failed to write file /etc/diy-lsi/hardware.js"
+        sys.exit(1)
+
+    try:
+        open('/etc/diy-lsi/pools.js', 'w').write(json.dumps(pools.get(), indent=2))
+    except:
+        print "Failed to write file /etc/diy-lsi/pools.js"
+        sys.exit(1)
 
 def do_resilver():
     parser = argparse.ArgumentParser(prog='diy-lsi resilver', 

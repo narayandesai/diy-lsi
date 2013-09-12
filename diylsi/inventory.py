@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, re, json
+import json, multiprocessing, os, re, sys
 
 def join_dict(a, b, field):
     new = dict()
@@ -21,32 +21,36 @@ def parse_mdb_mpt():
         ret.append({'guid':target[3], 'sas_target': int(target[1], 16)})
     return ret
 
-def parse_sas2ircu():
+def probe_lsi_controller(ctrl):
     ret = list()
+    data = [x for x in os.popen('''sas2ircu %s display | grep -A12 "Device is a Hard disk" | grep -v "is a Hard disk"''' % (ctrl)).readlines() if x != '--\n']
+    num_disks = len(data)/12
+    for disk in range(num_disks):
+        diskinfo = {'controller': ctrl}
+        base_idx = disk*12
+        disk_data = [item.split() for item in data[base_idx:base_idx+12]]
+        for entry in disk_data:
+            if entry[0] == 'Enclosure':
+                diskinfo['enclosure'] = int(entry[3])
+            elif entry[0] == 'Slot':
+                diskinfo['slot'] = int(entry[3])
+            elif entry[0:2] == ['SAS', 'Address']:
+                diskinfo['sas_address'] = entry[3]
+            elif entry[0:2] == ['Serial', 'No']:
+                diskinfo['serial'] = entry[3][:15]
+            elif entry[0] == 'GUID':
+                diskinfo['guid'] = entry[2]
+            else:
+                pass
+        ret.append( diskinfo)
+    return ret
+
+def parse_sas2ircu():
     data = [x for x in os.popen("sas2ircu list | grep -A2 Index").readlines() if x != '--\n']
     num_ctrl = len(data)/3
-    for ctrl in range(num_ctrl):
-        data = [x for x in os.popen('''sas2ircu %s display | grep -A12 "Device is a Hard disk" | grep -v "is a Hard disk"''' % (ctrl)).readlines() if x != '--\n']
-        num_disks = len(data)/12
-        for disk in range(num_disks):
-            diskinfo = {'controller': ctrl}
-            base_idx = disk*12
-            disk_data = [item.split() for item in data[base_idx:base_idx+12]]
-            for entry in disk_data:
-                if entry[0] == 'Enclosure':
-                    diskinfo['enclosure'] = int(entry[3])
-                elif entry[0] == 'Slot':
-                    diskinfo['slot'] = int(entry[3])
-                elif entry[0:2] == ['SAS', 'Address']:
-                    diskinfo['sas_address'] = entry[3]
-                elif entry[0:2] == ['Serial', 'No']:
-                    diskinfo['serial'] = entry[3][:15]
-                elif entry[0] == 'GUID':
-                    diskinfo['guid'] = entry[2]
-                else:
-                    pass
-            ret.append( diskinfo)
-    return ret
+    p = multiprocessing.Pool(12)
+    results = p.map(probe_lsi_controller, range(num_ctrl))
+    return reduce(lambda x,y:x+y, results)
 
 def parse_iostat():
     pattern = re.compile('.*Serial No: (\S+) Size')

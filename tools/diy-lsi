@@ -2,9 +2,10 @@
 
 import argparse, json, os, multiprocessing, sys
 import diylsi.inventory
+from diylsi.statistics import do_statistics
 
 def do_inventory():
-    parser = argparse.ArgumentParser(prog='diy-lsi inventory', 
+    parser = argparse.ArgumentParser(prog='diy-lsi inventory',
                                      description="LSI disk inventory")
     parser.add_argument('--diff', help='diff state with stored config',
                         dest='diff', action='store_true')
@@ -28,7 +29,7 @@ def do_inventory():
 
     sas_data = diylsi.inventory.join_dict(d, a.get(), 'guid')
     disks = diylsi.inventory.join_dict(c.get(), sas_data, 'serial')
-   
+
     try:
         open('/etc/diy-lsi/hardware.js', 'w').write(json.dumps(disks, indent=2))
     except:
@@ -42,11 +43,11 @@ def do_inventory():
         sys.exit(1)
 
 def do_resilver():
-    parser = argparse.ArgumentParser(prog='diy-lsi resilver', 
+    parser = argparse.ArgumentParser(prog='diy-lsi resilver',
                                      description="ZFS Resilver tuning")
-    parser.add_argument('--fast', help='set high resilver priority', 
+    parser.add_argument('--fast', help='set high resilver priority',
                         dest='fast', action='store_true')
-    parser.add_argument('--regular', help='set regular resilver priority', 
+    parser.add_argument('--regular', help='set regular resilver priority',
                         dest='regular', action='store_true')
 
     config = parser.parse_args(sys.argv[2:])
@@ -65,6 +66,8 @@ if __name__ == '__main__':
         do_inventory()
     elif sys.argv[1] == 'resilver':
         do_resilver()
+    elif sys.argv[1] == 'stats':
+        do_statistics()
     else:
         print "Unknown mode %s" % sys.argv[1]
         sys.exit(1)

@@ -75,8 +75,8 @@ def parse_zpool():
         if len(line.split()) == 0:
             continue
         if skip:
-           skip = False
-           continue
+            skip = False
+            continue
         if line.split()[0] == 'pool:':
             pool = line.split()[1]
             config = False

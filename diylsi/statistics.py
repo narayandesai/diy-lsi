@@ -33,6 +33,6 @@ def do_statistics():
     else:
         disks = [x for x in hwdb if x.has_key('name') and x.has_key('guid')]
     pool = multiprocessing.Pool(16)
-    results = pool.map(diylsi.statistics.get_statistics, disks)
+    results = pool.map(get_statistics, disks)
     for stat in results:
         print stat

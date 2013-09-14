@@ -2,6 +2,7 @@
 
 import argparse, json, os, multiprocessing, sys
 import diylsi.inventory
+from diylsi.query import do_query
 from diylsi.statistics import do_statistics
 
 def do_inventory():
@@ -68,6 +69,8 @@ if __name__ == '__main__':
         do_resilver()
     elif sys.argv[1] == 'stats':
         do_statistics()
+    elif sys.argv[1] == 'query':
+        do_query()
     else:
         print "Unknown mode %s" % sys.argv[1]
         sys.exit(1)

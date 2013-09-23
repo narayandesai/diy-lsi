@@ -22,9 +22,26 @@ def get_statistics(diskinfo):
     data.update(poll_iostat(diskinfo))
     return data
 
+def filter_zero_stats(disklist):
+    hard = ['transport', 'media', 'not-ready', 'no-device']
+    nzdisks = list()
+    for disk in disklist:
+        if disk['smart-status'] != 'PASSED':
+            nzdisks.append(disk)
+            continue
+        for field in hard:
+            if disk[field] != 0:
+                nzdisks.append(disk)
+                continue
+        if disk['soft'] != disk['recoverable']:
+            nzdisks.append(disk)
+            continue
+    return nzdisks
+
 def do_statistics():
     parser = argparse.ArgumentParser(prog='diy-lsi stats',
                                      description='disk statistics info')
+    parser.add_argument('-z', dest='zero', help='display non-zero counters', action='store_true', default=False)
     parser.add_argument('disks', help='disk name', nargs='*')
     config = parser.parse_args(sys.argv[2:])
     hwdb = json.load(open('/etc/diy-lsi/hardware.js'))
@@ -32,7 +49,9 @@ def do_statistics():
         disks = [x for x in hwdb if x.get('name') in config.disks]
     else:
         disks = [x for x in hwdb if x.has_key('name') and x.has_key('guid')]
-    pool = multiprocessing.Pool(16)
+    pool = multiprocessing.Pool(64)
     results = pool.map(get_statistics, disks)
+    if config.zero:
+        results = filter_zero_stats(results)
     for stat in results:
         print stat

@@ -73,4 +73,8 @@ if __name__ == '__main__':
         do_query()
     else:
         print "Unknown mode %s" % sys.argv[1]
+        print "Usage: diy-lsi inventory"
+        print "       diy-lsi stats"
+        print "       diy-lsi resilver [--fast] [--regular]"
+        print "       diy-lsi query key=value"
         sys.exit(1)

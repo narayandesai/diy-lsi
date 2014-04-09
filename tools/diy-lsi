@@ -28,11 +28,12 @@ def do_inventory():
     pool.close()
     pool.join()
 
-    sas_data = diylsi.inventory.join_dict(d, a.get(), 'guid')
-    disks = diylsi.inventory.join_dict(c.get(), sas_data, 'serial')
+    sas_data = diylsi.inventory.join_dict(d, a, 'guid')
+    enclosures = [e for e in sas_data if e.get('type') == 'enclosure']
+    disks = diylsi.inventory.join_dict(c, [e for e in sas_data if e not in enclosures], 'serial')
 
     try:
-        open('/etc/diy-lsi/hardware.js', 'w').write(json.dumps(disks, indent=2))
+        open('/etc/diy-lsi/hardware.js', 'w').write(json.dumps(disks + enclosures, indent=2))
     except:
         print "Failed to write file /etc/diy-lsi/hardware.js"
         sys.exit(1)

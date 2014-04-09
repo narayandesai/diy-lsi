@@ -28,9 +28,9 @@ def do_inventory():
     pool.close()
     pool.join()
 
-    sas_data = diylsi.inventory.join_dict(d, a, 'guid')
+    sas_data = diylsi.inventory.join_dict(d, a.get(), 'guid')
     enclosures = [e for e in sas_data if e.get('type') == 'enclosure']
-    disks = diylsi.inventory.join_dict(c, [e for e in sas_data if e not in enclosures], 'serial')
+    disks = diylsi.inventory.join_dict(c.get(), [e for e in sas_data if e not in enclosures], 'serial')
 
     try:
         open('/etc/diy-lsi/hardware.js', 'w').write(json.dumps(disks + enclosures, indent=2))

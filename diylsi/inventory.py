@@ -15,14 +15,14 @@ def join_dict(a, b, field):
             new[item[field]] = item
     return new.values() + unmatched
 
-mptre = '\s+devhdl (?P<target>[0-9a-f]+), sasaddress (?P<guid>[0-9a-f]+),'
+mptre = '\s+devhdl (?P<sas_target>[0-9a-f]+), sasaddress (?P<guid>[0-9a-f]+),'
 
 def parse_mdb_mpt():
     ret = list()
     data = os.popen('echo ::mptsas -t | mdb -k').read()
     for dev in re.finditer(mptre, data):
         devinfo = dev.groupdict()
-        devinfo['target'] = int(devinfo['target'], 16)
+        devinfo['sas_target'] = int(devinfo['sas_target'], 16)
         ret.append(devinfo)
     return ret
 
@@ -52,8 +52,7 @@ encre = '''Device is a Enclosure services device
 \s+Serial No +: (?P<serial>\S+)
 \s+GUID +: (?P<guid>\S+)
 \s+Protocol +: (?P<protocol>\S+)
-\s+Device Type +: (?P<devtype>\S+)
-'''
+\s+Device Type +: (?P<devtype>\S+)'''
 
 def probe_lsi_controller(ctrl):
     ret = list()
@@ -70,7 +69,7 @@ def probe_lsi_controller(ctrl):
     for enclosure in re.finditer(encre, data):
         encdata = enclosure.groupdict()
         encdata.update(enctemplate)
-        encdata['model'].strip()
+        encdata['model'] = encdata['model'].strip()
         encdata['guid'] = encdata['sas_address'].replace('-', '')
         ret.append(encdata)
     return ret

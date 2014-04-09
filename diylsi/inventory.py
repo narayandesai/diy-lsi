@@ -69,6 +69,8 @@ def probe_lsi_controller(ctrl):
     for enclosure in re.finditer(encre, data):
         encdata = enclosure.groupdict()
         encdata.update(enctemplate)
+        for key in ['slot', 'enclosure']:
+            encdata[key] = int(encdata[key])
         encdata['model'] = encdata['model'].strip()
         encdata['guid'] = encdata['sas_address'].replace('-', '')
         ret.append(encdata)

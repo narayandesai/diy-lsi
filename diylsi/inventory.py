@@ -120,7 +120,14 @@ def parse_zpool():
             elif [x for x in skiplist if line.split()[0].startswith(x)]:
                 continue
             # need to truncate device name at 22 characters
-            ret.append({'name': line.split()[0][:21], 'pool':pool, 'vdev':vdev, 'zfs_state':line.split()[1]})
+            if len(line.split()[0]) > 22:
+                name = line.split()[0][:21]
+            else:
+                name = line.split()[0]
+            zfs_state = 'unknown'
+            if len(line.split()) >= 2:
+                zfs_state = line.split()[1]
+            ret.append({'name': name, 'pool': pool, 'vdev': vdev, 'zfs_state': zfs_state})
         else:
             pass
     return ret

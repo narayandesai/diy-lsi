@@ -31,7 +31,7 @@ diskre = '''Device is a Hard disk
 \s+Slot #                                  : (?P<slot>\d+)
 \s+SAS Address                             : (?P<sas_address>[0-9a-f\-]+)
 \s+State                                   : (?P<state>[A-Za-z \(\)]+)
-\s+Size \(in MB\)/\(in sectors\) +: (?P<size>\S+)
+\s+Size \(in MB\)/\(in sectors\) +: (?P<size>\d+)/(?P<sectors>\d+)
 \s+Manufacturer +: (?P<manufacturer>[^\n]+)
 \s+Model Number +: (?P<model>[^\n]+)
 \s+Firmware Revision +: (?P<firmware>[^\n]+)
@@ -41,15 +41,38 @@ diskre = '''Device is a Hard disk
 \s+Drive Type +: (?P<drivetype>\S+)
 '''
 
+encre = '''Device is a Enclosure services device
+  Enclosure #                             : (?P<enclosure>\d+)
+  Slot #                                  : (?P<slot>\d+)
+  SAS Address                             : (?P<sas_address>[0-9a-f\-]+)
+  State                                   : (?P<state>[A-Za-z \(\)]+)
+  Manufacturer                            : (?P<manufacturer>[^\n]+)
+\s+Model Number +: (?P<model>[^\n]+)
+\s+Firmware Revision +: (?P<firmware>[^\n]+)
+\s+Serial No +: (?P<serial>\S+)
+\s+GUID +: (?P<guid>\S+)
+\s+Protocol +: (?P<protocol>\S+)
+\s+Device Type +: (?P<devtype>\S+)
+'''
+
 def probe_lsi_controller(ctrl):
     ret = list()
     data = os.popen('''sas2ircu %d display''' % ctrl).read()
+    dtemplate = {'type': 'disk', 'ctrl': ctrl}
+    enctemplate = {'type':'enclosure', 'ctrl': ctrl}
     for disk in re.finditer(diskre, data):
         diskinfo = disk.groupdict()
-        diskinfo['ctrl'] = ctrl
-        diskinfo['type'] = 'disk'
+        diskinfo.update(dtemplate)
         diskinfo['serial'] = diskinfo['serial'][:15]
+        for key in ['size', 'sectors', 'slot', 'enclosure']:
+            diskinfo[key] = int(diskinfo[key])
         ret.append(diskinfo)
+    for enclosure in re.finditer(encre, data):
+        encdata = enclosure.groupdict()
+        encdata.update(enctemplate)
+        encdata['model'].strip()
+        encdata['guid'] = encdata['sas_address'].replace('-', '')
+        ret.append(encdata)
     return ret
 
 def parse_sas2ircu():

@@ -2,7 +2,7 @@
 
 import argparse, json, os, multiprocessing, sys
 import diylsi.inventory
-from diylsi.query import do_query
+from diylsi.query import do_query, do_id
 from diylsi.statistics import do_statistics
 
 def do_inventory():
@@ -72,10 +72,13 @@ if __name__ == '__main__':
         do_statistics()
     elif sys.argv[1] == 'query':
         do_query()
+    elif sys.argv[1] == 'id':
+        do_id()
     else:
         print "Unknown mode %s" % sys.argv[1]
         print "Usage: diy-lsi inventory"
         print "       diy-lsi stats"
         print "       diy-lsi resilver [--fast] [--regular]"
         print "       diy-lsi query key=value"
+        print "       diy-lsi id key=value"
         sys.exit(1)

@@ -45,7 +45,11 @@ def probe_lsi_controller(ctrl):
     ret = list()
     data = os.popen('''sas2ircu %d display''' % ctrl).read()
     for disk in re.finditer(diskre, data):
-        ret.append(disk.groupdict())
+        diskinfo = disk.groupdict()
+        diskinfo['ctrl'] = ctrl
+        diskinfo['type'] = 'disk'
+        diskinfo['serial'] = diskinfo['serial'][:15]
+        ret.append(diskinfo)
     return ret
 
 def parse_sas2ircu():
